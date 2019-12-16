@@ -13,6 +13,11 @@ struct node {
 };
 typedef struct node node;
 
+node * H = NULL;
+node *Hr = NULL;
+int e[50], t_arrive[50];
+
+void readFile();
 node* MAKE_bin_HEAP();
 void bin_LINK(node*, node*);
 node* CREATE_NODE(int);
@@ -25,9 +30,6 @@ int DISPLAY(node*);
 node* FIND_NODE(node*, int);
 int bin_HEAP_DECREASE_KEY(node*, int, int);
 int bin_HEAP_DELETE(node*, int);
-
-node * H = NULL;
-node *Hr = NULL;
 
 
 int main() {
@@ -44,6 +46,10 @@ int main() {
         H = bin_HEAP_INSERT(H, np);
     }
     DISPLAY(H);
+
+    readFile();
+    printf("[%d - %d]",e[18], t_arrive[18]);
+
     do {
         printf("\nMENU:-\n");
         printf(
@@ -107,6 +113,31 @@ int main() {
                 printf("\nINVALID ENTRY...TRY AGAIN....\n");
         }
     } while (l != 5);
+}
+
+void readFile(){
+    char data[150][4];
+    char counter = 0;
+    FILE *ptr = fopen("C:/Users/cemgg/Documents/GitHub/Preemptive-Scheduling-System-with-BH/Project3 2019/input.txt","r");
+    if (ptr){
+        while(!feof(ptr)){ //inserting the text document
+            fscanf(ptr,"%s",data[counter]);
+            counter++;
+        }
+    }
+    fclose(ptr);
+
+    int e_index = 0, t_arrive_index = 0;
+    for(int i=0; i<counter; i++){
+        if(i % 3 == 1){
+            e[e_index] = atoi(data[i]);
+            e_index++;
+        }
+        if(i % 3 == 2){
+            t_arrive[t_arrive_index] = atoi(data[i]);
+            t_arrive_index++;
+        }
+    }
 }
 
 node* MAKE_bin_HEAP(){
