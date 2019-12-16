@@ -7,6 +7,14 @@
 #IncludeRegexTransform: 
 
 C:/Users/cemgg/Documents/GitHub/Preemptive-Scheduling-System-with-BH/main.c
+stdlib.h
+-
 stdio.h
+-
+string.h
+-
+math.h
+-
+malloc.h
 -
 
