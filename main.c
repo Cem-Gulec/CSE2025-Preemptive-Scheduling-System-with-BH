@@ -15,7 +15,7 @@ typedef struct node node;
 
 node * H = NULL;
 node *Hr = NULL;
-int e[50], t_arrive[50]; 
+int e[50], t_arrive[50];  
 
 void readFile();
 node* MAKE_bin_HEAP();
