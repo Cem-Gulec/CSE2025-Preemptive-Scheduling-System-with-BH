@@ -1,8 +1,12 @@
+/*Designed and programmed by - Cem Gulec - 150117828
+ * TODO: hesaplamaları nasıl daha precise hale getirebilirim bakın
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include<malloc.h>
+#include <malloc.h>
 
 struct node {
     int n;
@@ -15,8 +19,10 @@ typedef struct node node;
 
 node * H = NULL;
 node *Hr = NULL;
-int e[50], t_arrive[50];  
+int e[50], t_arrive[50], e_max;
 
+double calculatePriVal(double, int);
+double calculateCei(int);
 void readFile();
 node* MAKE_bin_HEAP();
 void bin_LINK(node*, node*);
@@ -49,6 +55,10 @@ int main() {
 
     readFile();
     printf("[%d - %d]",e[18], t_arrive[18]);
+    double c_ei = calculateCei(e[14]);
+    printf(" %lf ", c_ei);
+    double priorityVal = calculatePriVal(c_ei, e[14]);
+    printf("%lf",  priorityVal);
 
     do {
         printf("\nMENU:-\n");
@@ -107,12 +117,25 @@ int main() {
                 } while (ch == 'y' || ch == 'Y');
                 break;
             case 5:
-                printf("\nTHANK U SIR\n");
+                printf("\nTHANK YOU\n");
                 break;
             default:
                 printf("\nINVALID ENTRY...TRY AGAIN....\n");
         }
     } while (l != 5);
+}
+
+double calculatePriVal(double c_ei, int e_i){
+    return c_ei * e_i;
+}
+
+double calculateCei(int e_i){
+    double val1 = 2 * e_i;
+    double val2 = 3 * e_max;
+    double temp = pow(val1/val2, 3);
+    double result = 1 / ( exp(-temp) );
+
+    return result;
 }
 
 void readFile(){
@@ -127,6 +150,7 @@ void readFile(){
     }
     fclose(ptr);
 
+    //seperate input file into e and t_arr values
     int e_index = 0, t_arrive_index = 0;
     for(int i=0; i<counter; i++){
         if(i % 3 == 1){
@@ -138,6 +162,14 @@ void readFile(){
             t_arrive_index++;
         }
     }
+
+    //to check what value is the e_max
+    int local_max = 1;
+    for(int i=0; i<e_index; i++){
+        if(e[i] > local_max)
+            local_max = e[i];
+    }
+    e_max = local_max;
 }
 
 node* MAKE_bin_HEAP(){
