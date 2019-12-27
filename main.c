@@ -19,7 +19,7 @@ typedef struct node node;
 
 node * H = NULL;
 node *Hr = NULL;
-int e[50], t_arrive[50], e_max;
+int process[50], e[50], t_arrive[50], e_max, max_index;
 
 double calculatePriVal(double, int);
 double calculateCei(int);
@@ -43,17 +43,16 @@ int main() {
     node* p;
     node* np;
     char ch;
-    printf("\nENTER THE NUMBER OF ELEMENTS:");
-    scanf("%d", &n);
-    printf("\nENTER THE ELEMENTS:\n");
-    for (i = 1; i <= n; i++) {
-        scanf("%d", &m);
-        np = CREATE_NODE(m);
+
+    readFile();
+
+    for (i = 0; i < max_index; i++) {
+        np = CREATE_NODE(process[i]);
         H = bin_HEAP_INSERT(H, np);
     }
     DISPLAY(H);
 
-    readFile();
+    printf("P%d P%d P%d",process[0], process[1], process[2]);
     printf("[%d - %d]",e[18], t_arrive[18]);
     double c_ei = calculateCei(e[14]);
     printf(" %lf ", c_ei);
@@ -150,9 +149,13 @@ void readFile(){
     }
     fclose(ptr);
 
-    //seperate input file into e and t_arr values
-    int e_index = 0, t_arrive_index = 0;
+    //seperate input file into process, e and t_arr values
+    int process_index = 0, e_index = 0, t_arrive_index = 0;
     for(int i=0; i<counter; i++){
+        if(i % 3 == 0){
+            process[process_index] = atoi(&data[i][1]);
+            process_index++;
+        }
         if(i % 3 == 1){
             e[e_index] = atoi(data[i]);
             e_index++;
@@ -170,6 +173,7 @@ void readFile(){
             local_max = e[i];
     }
     e_max = local_max;
+    max_index = process_index - 1;
 }
 
 node* MAKE_bin_HEAP(){
