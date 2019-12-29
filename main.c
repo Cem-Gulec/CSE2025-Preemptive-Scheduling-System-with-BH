@@ -1,5 +1,8 @@
 /*Designed and programmed by - Cem Gulec - 150117828
  * TODO: hesaplamaları nasıl daha precise hale getirebilirim bakın
+ * TODO: while içerisinde ekleme yapılmasa da olur
+ * TODO: simple demo kısımlarını kaldır
+ * TODO: arayüz en son halinde tablolaştıracak şekilde print edilebilir
  */
 
 #include <stdlib.h>
@@ -9,6 +12,7 @@
 #include <malloc.h>
 
 struct node {
+    int process;
     int n;
     int degree;
     struct node* parent;
@@ -19,14 +23,17 @@ typedef struct node node;
 
 node * H = NULL;
 node *Hr = NULL;
-int process[50], e[50], t_arrive[50], e_max, max_index;
+int process[50], e[50], t_arrive[50], WaitTime[50] = {0};
+int e_max, max_index, general_time = 0;
 
+//function prototypes
+void Processor();
 double calculatePriVal(double, int);
 double calculateCei(int);
 void readFile();
 node* MAKE_bin_HEAP();
 void bin_LINK(node*, node*);
-node* CREATE_NODE(int);
+node* CREATE_NODE(int, int);
 node* bin_HEAP_UNION(node*, node*);
 node* bin_HEAP_INSERT(node*, node*);
 node* bin_HEAP_MERGE(node*, node*);
@@ -39,41 +46,39 @@ int bin_HEAP_DELETE(node*, int);
 
 
 int main() {
-    int i, n, m, l;
+    int m, l;
     node* p;
-    node* np;
     char ch;
 
     readFile();
 
-    for (i = 0; i < max_index; i++) {
-        np = CREATE_NODE(process[i]);
-        H = bin_HEAP_INSERT(H, np);
-    }
+    Processor();
+
     DISPLAY(H);
 
+    //simple demo for variables
     printf("P%d P%d P%d",process[0], process[1], process[2]);
     printf("[%d - %d]",e[18], t_arrive[18]);
     double c_ei = calculateCei(e[14]);
     printf(" %lf ", c_ei);
     double priorityVal = calculatePriVal(c_ei, e[14]);
-    printf("%lf",  priorityVal);
+    printf("%lf\n",  priorityVal);
 
     do {
         printf("\nMENU:-\n");
         printf(
-                "\n1)INSERT AN ELEMENT\n2)EXTRACT THE MINIMUM KEY NODE\n3)DECREASE A NODE KEY\n 4)DELETE A NODE\n5)QUIT\n");
+                "\n1)INSERT AN ELEMENT\n2)EXTRACT THE MINIMUM KEY NODE\n3)DECREASE A NODE KEY\n4)DELETE A NODE\n5)QUIT\n>> ");
         scanf("%d", &l);
         switch (l) {
             case 1:
                 do {
                     printf("\nENTER THE ELEMENT TO BE INSERTED:");
                     scanf("%d", &m);
-                    p = CREATE_NODE(m);
+                    p = CREATE_NODE(m, 0);
                     H = bin_HEAP_INSERT(H, p);
                     printf("\nNOW THE HEAP IS:\n");
                     DISPLAY(H);
-                    printf("\nINSERT MORE(y/Y)= \n");
+                    printf("\nINSERT MORE(y/Y)= \n>> ");
                     fflush(stdin);
                     scanf("%c", &ch);
                 } while (ch == 'Y' || ch == 'y');
@@ -86,7 +91,7 @@ int main() {
                         printf("\nTHE EXTRACTED NODE IS %d", p->n);
                     printf("\nNOW THE HEAP IS:\n");
                     DISPLAY(H);
-                    printf("\nEXTRACT MORE(y/Y)\n");
+                    printf("\nEXTRACT MORE(y/Y)\n>> ");
                     fflush(stdin);
                     scanf("%c", &ch);
                 } while (ch == 'Y' || ch == 'y');
@@ -100,7 +105,7 @@ int main() {
                     bin_HEAP_DECREASE_KEY(H, m, l);
                     printf("\nNOW THE HEAP IS:\n");
                     DISPLAY(H);
-                    printf("\nDECREASE MORE(y/Y)\n");
+                    printf("\nDECREASE MORE(y/Y)\n>> ");
                     fflush(stdin);
                     scanf("%c", &ch);
                 } while (ch == 'Y' || ch == 'y');
@@ -110,7 +115,8 @@ int main() {
                     printf("\nENTER THE KEY TO BE DELETED: ");
                     scanf("%d", &m);
                     bin_HEAP_DELETE(H, m);
-                    printf("\nDELETE MORE(y/Y)\n");
+                    DISPLAY(H);
+                    printf("\nDELETE MORE(y/Y)\n>> ");
                     fflush(stdin);
                     scanf("%c", &ch);
                 } while (ch == 'y' || ch == 'Y');
@@ -122,6 +128,16 @@ int main() {
                 printf("\nINVALID ENTRY...TRY AGAIN....\n");
         }
     } while (l != 5);
+}
+
+void Processor(){
+
+    node *np;
+    //after reading file add all the processes
+    for (int i = 0; i < max_index; i++) {
+        np = CREATE_NODE(e[i] ,process[i]);
+        H = bin_HEAP_INSERT(H, np);
+    }
 }
 
 double calculatePriVal(double c_ei, int e_i){
@@ -190,9 +206,10 @@ void bin_LINK(node* y, node* z){
     z->degree = z->degree + 1;
 }
 
-node* CREATE_NODE(int k){
+node* CREATE_NODE(int k, int pr){
     node* p; //new node;
     p = (node*) malloc(sizeof(node));
+    p->process = pr;
     p->n = k;
 
     return p;
@@ -289,7 +306,7 @@ int DISPLAY(node* H){
     printf("\nTHE ROOT NODES ARE:-\n");
     p = H;
     while (p != NULL) {
-        printf("%d", p->n);
+        printf("%d, %d, %d", p->n, p->degree, p->process);
         if (p->sibling != NULL)
             printf("-->");
         p = p->sibling;
