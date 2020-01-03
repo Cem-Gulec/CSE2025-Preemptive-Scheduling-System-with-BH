@@ -1,8 +1,11 @@
 /*Designed and programmed by - Cem Gulec - 150117828
- * TODO: hesaplamaları nasıl daha precise hale getirebilirim bakın
- * TODO: while içerisinde ekleme yapılmasa da olur
- * TODO: simple demo kısımlarını kaldır
+ * TODO: P2 P1'den önce bitebilir dolayısıyla last_index'e bağımlı bir döngü ile BH'e kaydetme yapamam
+ * TODO: aynı node'u eklememe durumunu kontrol etmek gerek
+ * TODO: BH'den silip tekrar ekleyeceğin nodun gerekli bilgileri girilmesi gerek (firstTimeFlag = 0 gibi)
+ * TODO: processor node'una trace edecek kodlama
+ * TODO: şayet processor'a ulaştım bunu nasıl delete ederim
  * TODO: arayüz en son halinde tablolaştıracak şekilde print edilebilir
+ * TODO: fonksiyon prototip ve alttaki yerlerdeki sıralamalar daha akıllıca olabilir (örneğin hesaplamalar alt alta)
  */
 
 #include <stdlib.h>
@@ -11,8 +14,12 @@
 #include <math.h>
 #include <malloc.h>
 
+#define MAX_LIMIT 50
+
 struct node {
     int process;
+    double priority;
+    int firstTimeFlag;
     int n;
     int degree;
     struct node* parent;
@@ -23,17 +30,22 @@ typedef struct node node;
 
 node * H = NULL;
 node *Hr = NULL;
-int process[50], e[50], t_arrive[50], WaitTime[50] = {0};
-int e_max, max_index, general_time = 0;
+int process[MAX_LIMIT] = {0}, e[MAX_LIMIT], t_arrive[MAX_LIMIT], WaitTime[MAX_LIMIT] = {0}, firsTime[MAX_LIMIT] = {0};
+int e_max, max_index, general_time = 26;
 
 //function prototypes
-void Processor();
+int *changeInputProcess(int *, int, int);
+int *deleteInputProcess(int *, int);
+int isInputEmpty(int *);
+void calculatePriorityNodes(node *);
+void printHeap(node*);
+void Processor(int);
 double calculatePriVal(double, int);
 double calculateCei(int);
 void readFile();
 node* MAKE_bin_HEAP();
 void bin_LINK(node*, node*);
-node* CREATE_NODE(int, int);
+node* CREATE_NODE(int, int, int);
 node* bin_HEAP_UNION(node*, node*);
 node* bin_HEAP_INSERT(node*, node*);
 node* bin_HEAP_MERGE(node*, node*);
@@ -46,98 +58,91 @@ int bin_HEAP_DELETE(node*, int);
 
 
 int main() {
-    int m, l;
-    node* p;
-    char ch;
 
     readFile();
 
-    Processor();
+    Processor(1);
+    printHeap(H);
 
     DISPLAY(H);
 
-    //simple demo for variables
-    printf("P%d P%d P%d",process[0], process[1], process[2]);
-    printf("[%d - %d]",e[18], t_arrive[18]);
-    double c_ei = calculateCei(e[14]);
-    printf(" %lf ", c_ei);
-    double priorityVal = calculatePriVal(c_ei, e[14]);
-    printf("%lf\n",  priorityVal);
-
-    do {
-        printf("\nMENU:-\n");
-        printf(
-                "\n1)INSERT AN ELEMENT\n2)EXTRACT THE MINIMUM KEY NODE\n3)DECREASE A NODE KEY\n4)DELETE A NODE\n5)QUIT\n>> ");
-        scanf("%d", &l);
-        switch (l) {
-            case 1:
-                do {
-                    printf("\nENTER THE ELEMENT TO BE INSERTED:");
-                    scanf("%d", &m);
-                    p = CREATE_NODE(m, 0);
-                    H = bin_HEAP_INSERT(H, p);
-                    printf("\nNOW THE HEAP IS:\n");
-                    DISPLAY(H);
-                    printf("\nINSERT MORE(y/Y)= \n>> ");
-                    fflush(stdin);
-                    scanf("%c", &ch);
-                } while (ch == 'Y' || ch == 'y');
-                break;
-            case 2:
-                do {
-                    printf("\nEXTRACTING THE MINIMUM KEY NODE");
-                    p = bin_HEAP_EXTRACT_MIN(H);
-                    if (p != NULL)
-                        printf("\nTHE EXTRACTED NODE IS %d", p->n);
-                    printf("\nNOW THE HEAP IS:\n");
-                    DISPLAY(H);
-                    printf("\nEXTRACT MORE(y/Y)\n>> ");
-                    fflush(stdin);
-                    scanf("%c", &ch);
-                } while (ch == 'Y' || ch == 'y');
-                break;
-            case 3:
-                do {
-                    printf("\nENTER THE KEY OF THE NODE TO BE DECREASED:");
-                    scanf("%d", &m);
-                    printf("\nENTER THE NEW KEY : ");
-                    scanf("%d", &l);
-                    bin_HEAP_DECREASE_KEY(H, m, l);
-                    printf("\nNOW THE HEAP IS:\n");
-                    DISPLAY(H);
-                    printf("\nDECREASE MORE(y/Y)\n>> ");
-                    fflush(stdin);
-                    scanf("%c", &ch);
-                } while (ch == 'Y' || ch == 'y');
-                break;
-            case 4:
-                do {
-                    printf("\nENTER THE KEY TO BE DELETED: ");
-                    scanf("%d", &m);
-                    bin_HEAP_DELETE(H, m);
-                    DISPLAY(H);
-                    printf("\nDELETE MORE(y/Y)\n>> ");
-                    fflush(stdin);
-                    scanf("%c", &ch);
-                } while (ch == 'y' || ch == 'Y');
-                break;
-            case 5:
-                printf("\nTHANK YOU\n");
-                break;
-            default:
-                printf("\nINVALID ENTRY...TRY AGAIN....\n");
-        }
-    } while (l != 5);
 }
 
-void Processor(){
+int *changeInputProcess(int *arr, int process_num, int key) {
 
-    node *np;
-    //after reading file add all the processes
-    for (int i = 0; i < max_index; i++) {
-        np = CREATE_NODE(e[i] ,process[i]);
-        H = bin_HEAP_INSERT(H, np);
+    for(int i = 0; i<MAX_LIMIT; i++)
+        if(arr[i] == process_num){
+            arr[i] = key;
+            break;
+        }
+
+    return arr;
+}
+
+int *deleteInputProcess(int *arr, int process_num){
+
+    for(int i = 0; i < MAX_LIMIT; i++){
+        if(arr[i] == process_num)
+            arr[i] = 0;
     }
+
+    return arr;
+}
+
+int isInputEmpty(int *arr){
+    for(int i = 0; i<MAX_LIMIT; i++)
+        if(arr[i] != 0){
+            return 0;
+        }
+
+    return 1;
+}
+
+void calculatePriorityNodes(node * head){
+    double c_ei, priorityVal;
+    while(head){
+        if(head->firstTimeFlag == 0)
+            c_ei = 1;
+        else
+            c_ei = calculateCei(e[head->process - 1]);
+
+        priorityVal = calculatePriVal(c_ei, e[head->process - 1]);
+        head->priority = priorityVal;
+        calculatePriorityNodes(head->child);
+        head = head->sibling;
+    }
+}
+
+void printHeap(node* head){
+    while(head){
+        printf("%d:%.3lf ", head->process, head->priority);
+        printHeap(head->child);
+        head = head->sibling;
+    }
+}
+
+void Processor(int quantum_time){
+
+    int q = quantum_time;
+    node *np;
+
+    //after reading file add all the processes
+    //while there exist processes in the input list
+
+    //while (!isInputEmpty(process))
+    //{
+        //check for the input arrive time, t_arr <= general_time
+        //means that element can enter the system from BH
+        for(int i = 0; i < max_index; i++){
+            if(t_arrive[i] <= general_time && process[i] != 0){
+                np = CREATE_NODE(e[i] ,process[i], firsTime[i]);
+                H = bin_HEAP_INSERT(H, np);
+                firsTime[i] = 1;
+            }
+        }
+        //calculate priority values for all the elements in BH
+        calculatePriorityNodes(H);
+    //}
 }
 
 double calculatePriVal(double c_ei, int e_i){
@@ -206,9 +211,10 @@ void bin_LINK(node* y, node* z){
     z->degree = z->degree + 1;
 }
 
-node* CREATE_NODE(int k, int pr){
+node* CREATE_NODE(int k, int pr, int FTFlag){
     node* p; //new node;
     p = (node*) malloc(sizeof(node));
+    p->firstTimeFlag = FTFlag;
     p->process = pr;
     p->n = k;
 
