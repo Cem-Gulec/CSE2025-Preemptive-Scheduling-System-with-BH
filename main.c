@@ -6,6 +6,7 @@
  * TODO: şayet processor'a ulaştım bunu nasıl delete ederim
  * TODO: arayüz en son halinde tablolaştıracak şekilde print edilebilir
  * TODO: fonksiyon prototip ve alttaki yerlerdeki sıralamalar daha akıllıca olabilir (örneğin hesaplamalar alt alta)
+ * TODO: fonksiyon isimleri, değişkenleri ve printleri falan değiştir
  */
 
 #include <stdlib.h>
@@ -32,29 +33,34 @@ node * H = NULL;
 node *Hr = NULL;
 int process[MAX_LIMIT] = {0}, e[MAX_LIMIT], t_arrive[MAX_LIMIT], WaitTime[MAX_LIMIT] = {0}, firsTime[MAX_LIMIT] = {0};
 int e_max, max_index, general_time = 26;
+double least_priVal = 50;
+int leastPriVal[MAX_LIMIT] = {0}, isSamePriCnt = 0, numberOfNodes;
 
 //function prototypes
 int *changeInputProcess(int *, int, int);
 int *deleteInputProcess(int *, int);
 int isInputEmpty(int *);
+int isSamePriVal(node *);
 void calculatePriorityNodes(node *);
-void printHeap(node*);
+void printHeap(node *);
 void Processor(int);
 double calculatePriVal(double, int);
+int whichHasTheLeastPri1(node *);
+int *whichHasTheLeastPri(int *, node *);
 double calculateCei(int);
 void readFile();
 node* MAKE_bin_HEAP();
-void bin_LINK(node*, node*);
+void bin_LINK(node *, node *);
 node* CREATE_NODE(int, int, int);
-node* bin_HEAP_UNION(node*, node*);
-node* bin_HEAP_INSERT(node*, node*);
-node* bin_HEAP_MERGE(node*, node*);
-node* bin_HEAP_EXTRACT_MIN(node*);
-int REVERT_LIST(node*);
-int DISPLAY(node*);
-node* FIND_NODE(node*, int);
-int bin_HEAP_DECREASE_KEY(node*, int, int);
-int bin_HEAP_DELETE(node*, int);
+node* bin_HEAP_UNION(node *, node *);
+node* bin_HEAP_INSERT(node *, node *);
+node* bin_HEAP_MERGE(node *, node *);
+node* bin_HEAP_EXTRACT_MIN(node *);
+int REVERT_LIST(node *);
+int DISPLAY(node *);
+node* FIND_NODE(node *, int);
+int bin_HEAP_DECREASE_KEY(node *, int, int);
+int bin_HEAP_DELETE(node *, int);
 
 
 int main() {
@@ -68,37 +74,54 @@ int main() {
 
 }
 
-int *changeInputProcess(int *arr, int process_num, int key) {
+int *changeInputProcess(int *h, int process_num, int key) {
 
     for(int i = 0; i<MAX_LIMIT; i++)
-        if(arr[i] == process_num){
-            arr[i] = key;
+        if(h[i] == process_num){
+            h[i] = key;
             break;
         }
 
-    return arr;
+    return h;
 }
 
-int *deleteInputProcess(int *arr, int process_num){
+int *deleteInputProcess(int *h, int process_num){
 
     for(int i = 0; i < MAX_LIMIT; i++){
-        if(arr[i] == process_num)
-            arr[i] = 0;
+        if(h[i] == process_num)
+            h[i] = 0;
     }
 
-    return arr;
+    return h;
 }
 
-int isInputEmpty(int *arr){
+int isInputEmpty(int *h){
     for(int i = 0; i<MAX_LIMIT; i++)
-        if(arr[i] != 0){
+        if(h[i] != 0){
             return 0;
         }
 
     return 1;
 }
 
-void calculatePriorityNodes(node * head){
+int isSamePriVal(node *head){
+
+    while(head){
+        if(head->priority == least_priVal)
+            isSamePriCnt++;
+        isSamePriVal(head->child);
+        head = head->sibling;
+    }
+
+    //if all the nodes have the same priority value
+    //and it is equal to the least_pri then we'll look for t_arrive
+    if(isSamePriCnt == numberOfNodes)
+        return 1;
+    else
+        return 0;
+}
+
+void calculatePriorityNodes(node *head){
     double c_ei, priorityVal;
     while(head){
         if(head->firstTimeFlag == 0)
@@ -108,12 +131,15 @@ void calculatePriorityNodes(node * head){
 
         priorityVal = calculatePriVal(c_ei, e[head->process - 1]);
         head->priority = priorityVal;
+        if(priorityVal < least_priVal)
+            least_priVal = priorityVal;
+
         calculatePriorityNodes(head->child);
         head = head->sibling;
     }
 }
 
-void printHeap(node* head){
+void printHeap(node *head){
     while(head){
         printf("%d:%.3lf ", head->process, head->priority);
         printHeap(head->child);
@@ -123,7 +149,7 @@ void printHeap(node* head){
 
 void Processor(int quantum_time){
 
-    int q = quantum_time;
+    int q = quantum_time, num_nodes = 0;
     node *np;
 
     //after reading file add all the processes
@@ -138,15 +164,52 @@ void Processor(int quantum_time){
                 np = CREATE_NODE(e[i] ,process[i], firsTime[i]);
                 H = bin_HEAP_INSERT(H, np);
                 firsTime[i] = 1;
+                num_nodes++;
             }
         }
+        numberOfNodes = num_nodes;
         //calculate priority values for all the elements in BH
         calculatePriorityNodes(H);
+        printf("\n**// Least pri val: %.3lf", least_priVal);
+        printf("\n**// Number of nodes: %d",num_nodes);
+        printf("\n**// BH nodes' priorities are same?: %d",isSamePriVal(H));
+        printf("\n**// Which has the least pri val: P%d\n\n",whichHasTheLeastPri1(H));
+
+
+        //diğer işleme geçmeden önce node sayısını resetle
+        //num_nodes = 0;
+        least_priVal = 50;
     //}
 }
 
 double calculatePriVal(double c_ei, int e_i){
     return c_ei * e_i;
+}
+
+int whichHasTheLeastPri1(node *head){
+
+    while(head){
+        if(head->priority == least_priVal){
+            return head->process;
+        }
+        whichHasTheLeastPri1(head->child);
+        head = head->sibling;
+    }
+
+    return -1;
+}
+
+int *whichHasTheLeastPri(int *h, node *head){
+
+    while(head){
+        if(head->priority == least_priVal){
+            return h;
+        }
+        whichHasTheLeastPri(h, head->child);
+        head = head->sibling;
+    }
+
+    return h;
 }
 
 double calculateCei(int e_i){
@@ -204,7 +267,7 @@ node* MAKE_bin_HEAP(){
     return np;
 }
 
-void bin_LINK(node* y, node* z){
+void bin_LINK(node *y, node *z){
     y->parent = z;
     y->sibling = z->child;
     z->child = y;
@@ -221,7 +284,7 @@ node* CREATE_NODE(int k, int pr, int FTFlag){
     return p;
 }
 
-node* bin_HEAP_UNION(node* H1, node* H2){
+node* bin_HEAP_UNION(node *H1, node *H2){
     node* prev_x;
     node* next_x;
     node* x;
@@ -256,7 +319,7 @@ node* bin_HEAP_UNION(node* H1, node* H2){
     return H;
 }
 
-node* bin_HEAP_INSERT(node* H, node* x){
+node* bin_HEAP_INSERT(node *H, node *x){
     node* H1 = MAKE_bin_HEAP();
     x->parent = NULL;
     x->child = NULL;
@@ -268,7 +331,7 @@ node* bin_HEAP_INSERT(node* H, node* x){
     return H;
 }
 
-node* bin_HEAP_MERGE(node* H1, node* H2){
+node* bin_HEAP_MERGE(node *H1, node *H2){
     node* H = MAKE_bin_HEAP();
     node* y;
     node* z;
@@ -303,7 +366,7 @@ node* bin_HEAP_MERGE(node* H1, node* H2){
     return H;
 }
 
-int DISPLAY(node* H){
+int DISPLAY(node *H){
     node* p;
     if (H == NULL) {
         printf("\nHEAP EMPTY");
@@ -320,7 +383,7 @@ int DISPLAY(node* H){
     printf("\n");
 }
 
-node* bin_HEAP_EXTRACT_MIN(node* H1){
+node* bin_HEAP_EXTRACT_MIN(node *H1){
     int min;
     node* t = NULL;
     node* x = H1;
@@ -358,7 +421,7 @@ node* bin_HEAP_EXTRACT_MIN(node* H1){
     return x;
 }
 
-int REVERT_LIST(node* y){
+int REVERT_LIST(node *y){
     if (y->sibling != NULL) {
         REVERT_LIST(y->sibling);
         (y->sibling)->sibling = y;
@@ -367,7 +430,7 @@ int REVERT_LIST(node* y){
     }
 }
 
-node* FIND_NODE(node* H, int k){
+node* FIND_NODE(node *H, int k){
     node* x = H;
     node* p = NULL;
     if (x->n == k) {
@@ -385,7 +448,7 @@ node* FIND_NODE(node* H, int k){
     return p;
 }
 
-int bin_HEAP_DECREASE_KEY(node* H, int i, int k){
+int bin_HEAP_DECREASE_KEY(node *H, int i, int k){
     int temp;
     node* p;
     node* y;
@@ -412,7 +475,7 @@ int bin_HEAP_DECREASE_KEY(node* H, int i, int k){
     printf("\nKEY REDUCED SUCCESSFULLY!");
 }
 
-int bin_HEAP_DELETE(node* H, int k){
+int bin_HEAP_DELETE(node *H, int k){
     node* np;
     if (H == NULL) {
         printf("\nHEAP EMPTY");
