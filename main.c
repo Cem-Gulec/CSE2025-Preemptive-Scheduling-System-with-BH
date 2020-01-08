@@ -1,9 +1,6 @@
 /*Designed and programmed by - Cem Gulec - 150117828
- * TODO: P2 P1'den önce bitebilir dolayısıyla last_index'e bağımlı bir döngü ile BH'e kaydetme yapamam
  * TODO: aynı node'u eklememe durumunu kontrol etmek gerek
- * TODO: BH'den silip tekrar ekleyeceğin nodun gerekli bilgileri girilmesi gerek (firstTimeFlag = 0 gibi)
- * TODO: processor node'una trace edecek kodlama
- * TODO: şayet processor'a ulaştım bunu nasıl delete ederim
+ *
  * TODO: arayüz en son halinde tablolaştıracak şekilde print edilebilir
  * TODO: fonksiyon prototip ve alttaki yerlerdeki sıralamalar daha akıllıca olabilir (örneğin hesaplamalar alt alta)
  * TODO: fonksiyon isimleri, değişkenleri ve printleri falan değiştir
@@ -32,11 +29,13 @@ typedef struct node node;
 node * H = NULL;
 node *Hr = NULL;
 int process[MAX_LIMIT] = {0}, e[MAX_LIMIT], t_arrive[MAX_LIMIT], WaitTime[MAX_LIMIT] = {0}, firsTime[MAX_LIMIT] = {0};
-int e_max, max_index, general_time = 26;
+int e_max, max_index, general_time = 0;
 double least_priVal = 50;
 int leastPriVal[MAX_LIMIT] = {0}, isSamePriCnt = 0, numberOfNodes;
 
 //function prototypes
+void increaseWT_SG(int);
+void increaseWT_ALL(int);
 int *changeInputProcess(int *, int, int);
 int *deleteInputProcess(int *, int);
 int isInputEmpty(int *);
@@ -68,10 +67,28 @@ int main() {
     readFile();
 
     Processor(1);
-    printHeap(H);
 
     DISPLAY(H);
 
+}
+
+void displayWT(){
+    for(int i = 0; i<max_index; i++)
+        printf("[%d]",WaitTime[i]);
+}
+
+void increaseWT_SG(int pr){
+    for(int i = 0; i<max_index; i++){
+        if(i == pr-1)
+            WaitTime[i]++;
+    }
+}
+
+void increaseWT_ALL(int k){
+    for(int i = 0; i<max_index; i++){
+        if(i != k-1)
+            WaitTime[i]++;
+    }
 }
 
 int *changeInputProcess(int *h, int process_num, int key) {
@@ -88,7 +105,7 @@ int *changeInputProcess(int *h, int process_num, int key) {
 int *deleteInputProcess(int *h, int process_num){
 
     for(int i = 0; i < MAX_LIMIT; i++){
-        if(h[i] == process_num)
+        if(h[i] == process_num-1)
             h[i] = 0;
     }
 
@@ -124,12 +141,16 @@ int isSamePriVal(node *head){
 void calculatePriorityNodes(node *head){
     double c_ei, priorityVal;
     while(head){
+        //if process enters for the first time
         if(head->firstTimeFlag == 0)
             c_ei = 1;
+        //for further insertions
         else
             c_ei = calculateCei(e[head->process - 1]);
 
-        priorityVal = calculatePriVal(c_ei, e[head->process - 1]);
+        double rounded = calculatePriVal(c_ei, e[head->process - 1]);
+        rounded = (int)(rounded * 1000.0)/1000.0;
+        priorityVal = rounded;
         head->priority = priorityVal;
         if(priorityVal < least_priVal)
             least_priVal = priorityVal;
@@ -141,7 +162,7 @@ void calculatePriorityNodes(node *head){
 
 void printHeap(node *head){
     while(head){
-        printf("%d:%.3lf ", head->process, head->priority);
+        printf("n: %d p: %.3lf P%d | ", head->n, head->priority, head->process);
         printHeap(head->child);
         head = head->sibling;
     }
@@ -149,36 +170,61 @@ void printHeap(node *head){
 
 void Processor(int quantum_time){
 
-    int q = quantum_time, num_nodes = 0;
     node *np;
 
     //after reading file add all the processes
     //while there exist processes in the input list
-
     //while (!isInputEmpty(process))
     //{
+    for(int j=0; j<6; j++){
+        int num_nodes = 0;
         //check for the input arrive time, t_arr <= general_time
         //means that element can enter the system from BH
         for(int i = 0; i < max_index; i++){
-            if(t_arrive[i] <= general_time && process[i] != 0){
+            if(t_arrive[i] <= general_time && e[i] != 0){
                 np = CREATE_NODE(e[i] ,process[i], firsTime[i]);
                 H = bin_HEAP_INSERT(H, np);
-                firsTime[i] = 1;
                 num_nodes++;
             }
         }
         numberOfNodes = num_nodes;
         //calculate priority values for all the elements in BH
         calculatePriorityNodes(H);
-        printf("\n**// Least pri val: %.3lf", least_priVal);
-        printf("\n**// Number of nodes: %d",num_nodes);
-        printf("\n**// BH nodes' priorities are same?: %d",isSamePriVal(H));
-        printf("\n**// Which has the least pri val: P%d\n\n",whichHasTheLeastPri1(H));
+        printf("\nGeneral time: %d", general_time);
+        printf("\nLeast pri val: %.3lf", least_priVal);
+        printf("\nmax index: %d", max_index);
+        printf("\nNumber of nodes: %d",numberOfNodes);
+        printf("\nBH nodes' priorities are same?: %d",isSamePriVal(H));
+        printf("\nWhich has the least pri val: P%d\n",whichHasTheLeastPri1(H));
+        printf("-------------------------------\n");
+    printf("//  "); printHeap(H); printf("  //");
+    printf("\n//  "); displayWT(); printf("  //");
+        int least_process_index = whichHasTheLeastPri1(H)-1;
+        bin_HEAP_DELETE(H, whichHasTheLeastPri1(H));
+    printf("\n//  "); printHeap(H); printf("  //");
 
+        //if the process is not completed
+        if( e[least_process_index] > quantum_time ){
+            e[least_process_index] -= quantum_time;
+            general_time += quantum_time;
+            firsTime[least_process_index] = 1;
+        }
 
+        //if completed but it may be shorter than quantum_time
+        //so that it can shift the time domain
+        else if ( e[least_process_index] <= quantum_time ){
+            if(e[least_process_index < quantum_time])
+                increaseWT_ALL(least_process_index);
+            general_time += e[least_process_index];
+            deleteInputProcess(process, least_process_index);
+            e[least_process_index] = 0;
+        }
+
+        printf("\n//  "); displayWT(); printf("  //\n\n\n");
         //diğer işleme geçmeden önce node sayısını resetle
-        //num_nodes = 0;
+        numberOfNodes = 0;
         least_priVal = 50;
+        }
     //}
 }
 
@@ -189,10 +235,12 @@ double calculatePriVal(double c_ei, int e_i){
 int whichHasTheLeastPri1(node *head){
 
     while(head){
+        printf("\n[[%lf %lf]]",head->priority, least_priVal);
         if(head->priority == least_priVal){
-            return head->process;
+            return (head->process);
         }
-        whichHasTheLeastPri1(head->child);
+        int recursive_return = whichHasTheLeastPri1(head->child);
+        if(recursive_return != -1) return recursive_return;
         head = head->sibling;
     }
 
@@ -224,7 +272,7 @@ double calculateCei(int e_i){
 void readFile(){
     char data[150][4];
     char counter = 0;
-    FILE *ptr = fopen("C:/Users/cemgg/Documents/GitHub/Preemptive-Scheduling-System-with-BH/Project3 2019/input.txt","r");
+    FILE *ptr = fopen("C:/Users/cemgg/Documents/GitHub/Preemptive-Scheduling-System-with-BH/Project3 2019/deneme.txt","r");
     if (ptr){
         while(!feof(ptr)){ //inserting the text document
             fscanf(ptr,"%s",data[counter]);
@@ -257,7 +305,7 @@ void readFile(){
             local_max = e[i];
     }
     e_max = local_max;
-    max_index = process_index - 1;
+    max_index = counter / 3;
 }
 
 node* MAKE_bin_HEAP(){
@@ -375,7 +423,7 @@ int DISPLAY(node *H){
     printf("\nTHE ROOT NODES ARE:-\n");
     p = H;
     while (p != NULL) {
-        printf("%d, %d, %d", p->n, p->degree, p->process);
+        printf("n: %d, d: %d, P%d", p->n, p->degree, p->process);
         if (p->sibling != NULL)
             printf("-->");
         p = p->sibling;
@@ -433,7 +481,7 @@ int REVERT_LIST(node *y){
 node* FIND_NODE(node *H, int k){
     node* x = H;
     node* p = NULL;
-    if (x->n == k) {
+    if (x->process == k) {
         p = x;
         return p;
     }
