@@ -35,7 +35,7 @@ int leastPriVal[MAX_LIMIT] = {0}, isSamePriCnt = 0, numberOfNodes;
 
 //function prototypes
 void increaseWT_SG(int);
-void increaseWT_ALL(int);
+void increaseWT_ALL_shifted(int, int);
 int *changeInputProcess(int *, int, int);
 int *deleteInputProcess(int *, int);
 int isInputEmpty(int *);
@@ -84,10 +84,10 @@ void increaseWT_SG(int pr){
     }
 }
 
-void increaseWT_ALL(int k){
+void increaseWT_ALL_shifted(int index_num, int difference){
     for(int i = 0; i<max_index; i++){
-        if(i != k-1)
-            WaitTime[i]++;
+        if(i != index_num-1)
+            WaitTime[i] += difference;
     }
 }
 
@@ -170,14 +170,15 @@ void printHeap(node *head){
 
 void Processor(int quantum_time){
 
+    int processes[50] = {0};
     node *np;
 
     //after reading file add all the processes
     //while there exist processes in the input list
     //while (!isInputEmpty(process))
     //{
-    for(int j=0; j<6; j++){
-        int num_nodes = 0;
+    for(int j=0; j<7; j++){
+        int num_nodes = 0, processes_index = 0;
         //check for the input arrive time, t_arr <= general_time
         //means that element can enter the system from BH
         for(int i = 0; i < max_index; i++){
@@ -185,6 +186,7 @@ void Processor(int quantum_time){
                 np = CREATE_NODE(e[i] ,process[i], firsTime[i]);
                 H = bin_HEAP_INSERT(H, np);
                 num_nodes++;
+                processes[processes_index++] = process[i];
             }
         }
         numberOfNodes = num_nodes;
@@ -198,9 +200,16 @@ void Processor(int quantum_time){
         printf("\nWhich has the least pri val: P%d\n",whichHasTheLeastPri1(H));
         printf("-------------------------------\n");
     printf("//  "); printHeap(H); printf("  //");
-    printf("\n//  "); displayWT(); printf("  //");
         int least_process_index = whichHasTheLeastPri1(H)-1;
         bin_HEAP_DELETE(H, whichHasTheLeastPri1(H));
+        //increaseWT_ALL(processes, least_process_index);
+        for(int i = 0; i<50; i++){
+            if(processes[i] != 0 && processes[i] != least_process_index+1)
+                WaitTime[processes[i]-1]++;
+        }
+        //reset deployed
+        for(int l = 0; l<50; l++)
+            processes[l] = 0;
     printf("\n//  "); printHeap(H); printf("  //");
 
         //if the process is not completed
@@ -210,17 +219,18 @@ void Processor(int quantum_time){
             firsTime[least_process_index] = 1;
         }
 
-        //if completed but it may be shorter than quantum_time
-        //so that it can shift the time domain
+        //if completed
         else if ( e[least_process_index] <= quantum_time ){
+            //it may be shorter than quantum_time
+            //so that it can shift the time domain
             if(e[least_process_index < quantum_time])
-                increaseWT_ALL(least_process_index);
+                increaseWT_ALL_shifted(least_process_index, quantum_time-e[least_process_index]);
             general_time += e[least_process_index];
             deleteInputProcess(process, least_process_index);
             e[least_process_index] = 0;
         }
 
-        printf("\n//  "); displayWT(); printf("  //\n\n\n");
+        printf("\n//  "); displayWT(); printf("  //\n\n");
         //diğer işleme geçmeden önce node sayısını resetle
         numberOfNodes = 0;
         least_priVal = 50;
