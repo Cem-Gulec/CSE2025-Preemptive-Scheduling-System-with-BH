@@ -43,7 +43,6 @@ void printHeap(node *);
 void Processor(int);
 double calculatePriVal(double, int);
 int whichHasTheLeastPri1(node *);
-int *whichHasTheLeastPri(int *, node *);
 double calculateCei(int);
 void readFile();
 node* MAKE_bin_HEAP();
@@ -68,15 +67,6 @@ int main() {
     printf("quantum_value: %d  |  Waiting Time of processes: ", q);displayWT();
     printf("\tAWT: %.2lf\n",AWT_result());
 
-
-
-    for(q = 2; q<=10; q++){
-        clearWT();
-        readFile();
-        Processor(q);
-        printf("quantum_value: %d  |  Waiting Time of processes: ", q);displayWT();
-        printf("\tAWT: %.2lf\n",AWT_result());
-    }
 }
 
 double AWT_result(){
@@ -159,7 +149,7 @@ int isSamePriVal(node *head){
 
     //if all the nodes have the same priority value
     //and it is equal to the least_pri then we'll look for t_arrive
-    if(isSamePriCnt == numberOfNodes)
+    if(isSamePriCnt == numberOfNodes && numberOfNodes != 1)
         return 1;
     else
         return 0;
@@ -204,77 +194,73 @@ void Processor(int quantum_time){
     //while there exist processes in the input list
     while (!isInputEmpty())
     {
-        int num_nodes = 0, processes_index = 0;
-        //check for the input arrive time, t_arr <= general_time
-        //means that element can enter the system from BH
-        for(int i = 0; i < max_index; i++){
-            if(t_arrive[i] <= general_time && e[i] != 0){
-                np = CREATE_NODE(e[i] ,process[i], firsTime[i]);
-                H = bin_HEAP_INSERT(H, np);
-                num_nodes++;
-                processes[processes_index++] = process[i];
+            int num_nodes = 0, processes_index = 0;
+            //check for the input arrive time, t_arr <= general_time
+            //means that element can enter the system from BH
+            for(int i = 0; i < max_index; i++){
+                if(t_arrive[i] <= general_time && e[i] != 0){
+                    np = CREATE_NODE(e[i] ,process[i], firsTime[i]);
+                    H = bin_HEAP_INSERT(H, np);
+                    num_nodes++;
+                    processes[processes_index++] = process[i];
+                }
             }
-        }
-        numberOfNodes = num_nodes;
-        //calculate priority values for all the elements in BH
-        calculatePriorityNodes(H);
-        /*printf("\nGeneral time: %d", general_time);
-        printf("\nLeast pri val: %.3lf", least_priVal);
-        printf("\nmax index: %d", max_index);
-        printf("\nNumber of nodes: %d",numberOfNodes);
+            numberOfNodes = num_nodes;
+            //calculate priority values for all the elements in BH
+            calculatePriorityNodes(H);
+            printf("\nGeneral time: %d", general_time);
+            printf("\nLeast pri val: %.3lf", least_priVal);
+            printf("\nmax index: %d", max_index);
+            printf("\nNumber of nodes: %d",numberOfNodes);
+            printf("\nis same pri val: %d",isSamePriVal(H));
+            printf("\nWhich has the least pri val: P%d\n",whichHasTheLeastPri1(H));
+            printf("-------------------------------\n");
+            printf("//  "); printHeap(H); printf("  //");
+            isSamePriFlag = isSamePriVal(H);
+            int least_process_index = whichHasTheLeastPri1(H)-1;
+            bin_HEAP_DELETE(H, whichHasTheLeastPri1(H));
+            for(int i = 0; i<50; i++){
+                if(processes[i] != 0 && processes[i] != least_process_index+1)
+                    WaitTime[processes[i]-1]++;
+            }
+            //reset deployed
+            for(int l = 0; l<50; l++)
+                processes[l] = 0;
+            printf("\n//  "); printHeap(H); printf("  //");
 
-        printf("\nWhich has the least pri val: P%d\n",whichHasTheLeastPri1(H));
-        printf("-------------------------------\n");
-    printf("//  "); printHeap(H); printf("  //");*/
-        isSamePriFlag = isSamePriVal(H);
-        int least_process_index = whichHasTheLeastPri1(H)-1;
-        bin_HEAP_DELETE(H, whichHasTheLeastPri1(H));
-        //increaseWT_ALL(processes, least_process_index);
-        for(int i = 0; i<50; i++){
-            if(processes[i] != 0 && processes[i] != least_process_index+1)
-                WaitTime[processes[i]-1]++;
-        }
-        //reset deployed
-        for(int l = 0; l<50; l++)
-            processes[l] = 0;
-    //printf("\n//  "); printHeap(H); printf("  //");
+            //if the process is not completed
+            if( e[least_process_index] > quantum_time ){
+                e[least_process_index] -= quantum_time;
+                general_time += quantum_time;
+                firsTime[least_process_index] = 1;
+            }
 
-        //if the process is not completed
-        if( e[least_process_index] > quantum_time ){
-            e[least_process_index] -= quantum_time;
-            general_time += quantum_time;
-            firsTime[least_process_index] = 1;
-        }
+                //if completed
+            else if ( e[least_process_index] <= quantum_time ){
+                //it may be shorter than quantum_time
+                //so that it can shift the time domain
+                /*if(e[least_process_index < quantum_time])
+                    increaseWT_ALL_shifted(least_process_index, quantum_time-e[least_process_index]);*/
+                general_time += e[least_process_index];
+                deleteInputProcess(least_process_index);
+                e[least_process_index] = 0;
+            }
 
-        //if completed
-        else if ( e[least_process_index] <= quantum_time ){
-            //it may be shorter than quantum_time
-            //so that it can shift the time domain
-            if(e[least_process_index < quantum_time])
-                increaseWT_ALL_shifted(least_process_index, quantum_time-e[least_process_index]);
-            general_time += e[least_process_index];
-            deleteInputProcess(least_process_index);
-            e[least_process_index] = 0;
-        }
+             printf("\n//  "); displayWT(); printf("  //\n\n");
+            //diğer işleme geçmeden önce node sayısını resetle
+            numberOfNodes = 0;
+            isSamePriCnt = 0;
+            isSamePriFlag = 0;
+            least_priVal = 50;
 
-       // printf("\n//  "); displayWT(); printf("  //\n\n");
-        //diğer işleme geçmeden önce node sayısını resetle
-        numberOfNodes = 0;
-        isSamePriCnt = 0;
-        isSamePriFlag = 0;
-        least_priVal = 50;
     }
 
-}
-
-double calculatePriVal(double c_ei, int e_i){
-    return c_ei * e_i;
 }
 
 int whichHasTheLeastPri1(node *head){
 
     while(head){
-        //printf("\n[[%lf %lf]]",head->priority, least_priVal);
+        printf("\n[[%lf %lf]]",head->priority, least_priVal);
         if(head->priority == least_priVal){
             return (head->process);
         }
@@ -286,17 +272,8 @@ int whichHasTheLeastPri1(node *head){
     return -1;
 }
 
-int *whichHasTheLeastPri(int *h, node *head){
-
-    while(head){
-        if(head->priority == least_priVal){
-            return h;
-        }
-        whichHasTheLeastPri(h, head->child);
-        head = head->sibling;
-    }
-
-    return h;
+double calculatePriVal(double c_ei, int e_i){
+    return c_ei * e_i;
 }
 
 double calculateCei(int e_i){
@@ -559,7 +536,7 @@ int bin_HEAP_DECREASE_KEY(node *H, int i, int k){
         y = z;
         z = z->parent;
     }
-    //printf("\nKEY REDUCED SUCCESSFULLY!");
+    printf("\nKEY REDUCED SUCCESSFULLY!");
 }
 
 int bin_HEAP_DELETE(node *H, int k){
@@ -571,6 +548,6 @@ int bin_HEAP_DELETE(node *H, int k){
 
     bin_HEAP_DECREASE_KEY(H, k, -1000);
     np = bin_HEAP_EXTRACT_MIN(H);
-    /*if (np != NULL)
-        printf("\nNODE DELETED SUCCESSFULLY");*/
+    if (np != NULL)
+        printf("\nNODE DELETED SUCCESSFULLY");
 }
