@@ -232,8 +232,14 @@ void Processor(int quantum_time){
 
             bin_HEAP_DELETE(H, whichHasTheLeastPri1(H));
             for(int i = 0; i<max_index; i++){
-                if(processes[i] != 0 && processes[i] != least_process_index+1)
-                    WaitTime[processes[i]-1]++;
+                if(processes[i] != 0 && firsTime[processes[i] - 1] == 0 && WaitTime[processes[i] - 1] == 0)
+                    WaitTime[processes[i] - 1] += general_time - t_arrive[processes[i] - 1];
+                if(processes[i] != 0 && processes[i] != least_process_index+1){
+                    WaitTime[processes[i] - 1] +=
+                            e[least_process_index] > quantum_time ? quantum_time : e[least_process_index];
+
+                }
+
             }
             //reset deployed
             for(int l = 0; l<max_index; l++)
@@ -247,12 +253,10 @@ void Processor(int quantum_time){
                 firsTime[least_process_index] = 1;
             }
 
-                //if completed
+            //if completed
             else if ( e[least_process_index] <= quantum_time ){
                 //it may be shorter than quantum_time
                 //so that it can shift the time domain
-                /*if(e[least_process_index < quantum_time])
-                    increaseWT_ALL_shifted(least_process_index, quantum_time-e[least_process_index]);*/
                 general_time += e[least_process_index];
                 deleteInputProcess(least_process_index);
                 e[least_process_index] = 0;
