@@ -27,7 +27,7 @@ node *Hr = NULL;
 int process[MAX_LIMIT] = {0}, e[MAX_LIMIT], t_arrive[MAX_LIMIT], WaitTime[MAX_LIMIT] = {0}, firsTime[MAX_LIMIT] = {0};
 int e_max, max_index, general_time = 0;
 double least_priVal = 50, least_TArrive = 50;
-int leastPriVal[MAX_LIMIT] = {0}, isSamePriCnt = 0, isSamePriFlag = 0, numberOfNodes;
+int leastPriVal[MAX_LIMIT] = {0}, isSamePriCnt = 0, isSamePriFlag = 0, numberOfNodes, heapEmptyFlag = 0;
 
 //function prototypes
 double AWT_result();
@@ -63,11 +63,19 @@ int bin_HEAP_DELETE(node *, int);
 
 int main() {
 
-    int q = 2;
+    int q = 10;
     readFile();
     Processor(q);
-    printf("quantum_value: %d  |  Waiting Time of processes: ", q);displayWT();
+    printf("\nquantum_value: %d  |  Waiting Time of processes: ", q);displayWT();
     printf("\tAWT: %.2lf\n",AWT_result());
+
+    /*for(q = 2; q <= 10; q++){
+        clearWT();
+        readFile();
+        Processor(q);
+        printf("\nquantum_value: %d  |  Waiting Time of processes: ", q);displayWT();
+        printf("\tAWT: %.2lf\n",AWT_result());
+    }*/
 
 }
 
@@ -91,6 +99,7 @@ void clearWT(){
     general_time = 0;
     least_priVal = 50;
     isSamePriCnt = 0;
+    heapEmptyFlag = 0;
 }
 
 void displayWT(){
@@ -195,13 +204,13 @@ void Processor(int quantum_time){
 
     //after reading file add all the processes
     //while there exist processes in the input list
-    while (!isInputEmpty())
+    while(!isInputEmpty())
     {
             int num_nodes = 0, processes_index = 0;
             //check for the input arrive time, t_arr <= general_time
             //means that element can enter the system from BH
             for(int i = 0; i < max_index; i++){
-                if(t_arrive[i] <= general_time && e[i] != 0){
+                if(t_arrive[i] <= general_time && e[i] != 0 && process[i] != 0){
                     np = CREATE_NODE(e[i] ,process[i], firsTime[i], t_arrive[i]);
                     H = bin_HEAP_INSERT(H, np);
                     num_nodes++;
@@ -223,14 +232,15 @@ void Processor(int quantum_time){
             printf("//  "); printHeap(H); printf("  //");
 
             int least_process_index;
-            if(isSamePriVal(H)){
+            if(!isSamePriVal(H)){
                 least_process_index = whichHasTheLeastPri1(H)-1;
+                bin_HEAP_DELETE(H, whichHasTheLeastPri1(H));
             }
             else{
                 least_process_index = whichHasTheLeastPri2(H)-1;
+                bin_HEAP_DELETE(H, whichHasTheLeastPri2(H));
             }
 
-            bin_HEAP_DELETE(H, whichHasTheLeastPri1(H));
             for(int i = 0; i<max_index; i++){
                 if(processes[i] != 0 && firsTime[processes[i] - 1] == 0 && WaitTime[processes[i] - 1] == 0)
                     WaitTime[processes[i] - 1] += general_time - t_arrive[processes[i] - 1];
@@ -262,7 +272,7 @@ void Processor(int quantum_time){
                 e[least_process_index] = 0;
             }
 
-             printf("\n//  "); displayWT(); printf("  //\n\n");
+            printf("\n//  "); displayWT(); printf("  //\n\n");
             //update before attempting to the other process
             numberOfNodes = 0;
             isSamePriCnt = 0;
@@ -293,7 +303,7 @@ int whichHasTheLeastPri2(node *head){
         if(head->t_arrive == least_TArrive){
             return (head->process);
         }
-        int recursive_return = whichHasTheLeastPri1(head->child);
+        int recursive_return = whichHasTheLeastPri2(head->child);
         if(recursive_return != -1) return recursive_return;
         head = head->sibling;
     }
@@ -317,7 +327,7 @@ double calculateCei(int e_i){
 void readFile(){
     char data[150][4];
     char counter = 0;
-    FILE *ptr = fopen("C:/Users/cemgg/Documents/GitHub/Preemptive-Scheduling-System-with-BH/Project3 2019/deneme.txt","r");
+    FILE *ptr = fopen("C:/Users/cemgg/Documents/GitHub/Preemptive-Scheduling-System-with-BH/Project3 2019/input.txt","r");
     if (ptr){
         while(!feof(ptr)){ //inserting the text document
             fscanf(ptr,"%s",data[counter]);
@@ -566,18 +576,19 @@ int bin_HEAP_DECREASE_KEY(node *H, int i, int k){
         y = z;
         z = z->parent;
     }
-    printf("\nKEY REDUCED SUCCESSFULLY!");
+    //printf("\nKEY REDUCED SUCCESSFULLY!");
 }
 
 int bin_HEAP_DELETE(node *H, int k){
     node* np;
     if (H == NULL) {
         printf("\nHEAP EMPTY");
+        heapEmptyFlag = 1;
         return 0;
     }
 
     bin_HEAP_DECREASE_KEY(H, k, -1000);
     np = bin_HEAP_EXTRACT_MIN(H);
-    if (np != NULL)
-        printf("\nNODE DELETED SUCCESSFULLY");
+    /*if (np != NULL)
+        printf("\nNODE DELETED SUCCESSFULLY");*/
 }
