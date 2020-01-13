@@ -63,7 +63,7 @@ int bin_HEAP_DELETE(node *, int);
 
 int main() {
 
-    int q = 10;
+    int q = 4;
     readFile();
     Processor(q);
     printf("\nquantum_value: %d  |  Waiting Time of processes: ", q);displayWT();
@@ -135,14 +135,20 @@ int *changeInputProcess(int *h, int process_num, int key) {
 void deleteInputProcess(int process_num){
 
     for(int i = 0; i < MAX_LIMIT; i++){
-        if(process[i] == process_num-1)
+        if(process[i] == process_num+1)
             process[i] = 0;
     }
 
 }
 
 int isInputEmpty(){
-    if(e[max_index-1] == 0)
+    int counter = 0;
+
+    for(int i=0; i<max_index; i++)
+        if(e[i] != 0)
+            counter++;
+
+    if(counter == 0)
         return 1;
     else
         return 0;
@@ -159,10 +165,15 @@ int isSamePriVal(node *head){
 
     //if all the nodes have the same priority value
     //and it is equal to the least_pri then we'll look for t_arrive
-    if(isSamePriCnt == numberOfNodes && numberOfNodes != 1)
+    if(isSamePriCnt == numberOfNodes && numberOfNodes != 1){
+        isSamePriCnt = 0;
         return 1;
-    else
+    }
+    else{
+        isSamePriCnt = 0;
         return 0;
+    }
+
 }
 
 void calculatePriorityNodes(node *head){
@@ -204,7 +215,7 @@ void Processor(int quantum_time){
 
     //after reading file add all the processes
     //while there exist processes in the input list
-    while(!isInputEmpty())
+    while(heapEmptyFlag == 0)
     {
             int num_nodes = 0, processes_index = 0;
             //check for the input arrive time, t_arr <= general_time
@@ -226,10 +237,12 @@ void Processor(int quantum_time){
             printf("\nLeast t_arrive val: %.3lf", least_TArrive);
             printf("\nmax index: %d", max_index);
             printf("\nNumber of nodes: %d",numberOfNodes);
-            printf("\nis same pri val: %d",isSamePriVal(H));
             printf("\nWhich has the least pri val: P%d\n",whichHasTheLeastPri1(H));
             printf("-------------------------------\n");
-            printf("//  "); printHeap(H); printf("  //");
+            printf("//  ");
+            for(int x = 0; x < num_nodes; x++)
+                printf("n:%d  P%d | ", e[processes[x]-1], processes[x]);
+            printf("  //");
 
             int least_process_index;
             if(!isSamePriVal(H)){
@@ -244,7 +257,7 @@ void Processor(int quantum_time){
             for(int i = 0; i<max_index; i++){
                 if(processes[i] != 0 && firsTime[processes[i] - 1] == 0 && WaitTime[processes[i] - 1] == 0)
                     WaitTime[processes[i] - 1] += general_time - t_arrive[processes[i] - 1];
-                if(processes[i] != 0 && processes[i] != least_process_index+1){
+                if(e[processes[i]-1] != 0 && processes[i] != least_process_index+1){
                     WaitTime[processes[i] - 1] +=
                             e[least_process_index] > quantum_time ? quantum_time : e[least_process_index];
 
@@ -254,7 +267,6 @@ void Processor(int quantum_time){
             //reset deployed
             for(int l = 0; l<max_index; l++)
                 processes[l] = 0;
-            printf("\n//  "); printHeap(H); printf("  //");
 
             //if the process is not completed
             if( e[least_process_index] > quantum_time ){
