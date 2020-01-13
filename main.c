@@ -80,7 +80,6 @@ int main() {
         displayWT();
         AWT_result();
     }
-
 }
 
 void AWT_result(){
@@ -244,11 +243,7 @@ void Processor(int quantum_time){
         printf("\nmax index: %d", max_index);
         printf("\nNumber of nodes: %d",numberOfNodes);
         printf("\nWhich has the least pri val: P%d\n",whichHasTheLeastPri1(H));
-        printf("-------------------------------\n");
-        printf("//  ");
-        for(int x = 0; x < num_nodes; x++)
-            printf("n:%d  P%d | ", e[processes[x]-1], processes[x]);
-        printf("  //");*/
+        printf("-------------------------------\n");*/
 
         int least_process_index;
         if(!isSamePriVal(H)){
@@ -260,15 +255,19 @@ void Processor(int quantum_time){
             bin_HEAP_DELETE(H, whichHasTheLeastPri2(H));
         }
 
+        //this is where the magic happens
         for(int i = 0; i<max_index; i++){
+            //if when a process comes to the system for the first time and general time is bigger than it is
+            //it causes process to wait, so we add the difference
             if(processes[i] != 0 && firsTime[processes[i] - 1] == 0 && WaitTime[processes[i] - 1] == 0)
                 WaitTime[processes[i] - 1] += general_time - t_arrive[processes[i] - 1];
+
+            //if a process taken into processor other ones has to wait, so increase their waiting time by quantum time = q
             if(e[processes[i]-1] != 0 && processes[i] != least_process_index+1){
                 WaitTime[processes[i] - 1] +=
                         e[least_process_index] > quantum_time ? quantum_time : e[least_process_index];
 
             }
-
         }
         //reset deployed
         for(int l = 0; l<max_index; l++)
@@ -281,7 +280,7 @@ void Processor(int quantum_time){
             firsTime[least_process_index] = 1;
         }
 
-            //if completed
+        //if the process is completed
         else if ( e[least_process_index] <= quantum_time ){
             //it may be shorter than quantum_time
             //so that it can shift the time domain
@@ -290,15 +289,13 @@ void Processor(int quantum_time){
             e[least_process_index] = 0;
         }
 
-        //printf("\n//  "); displayWT(); printf("  //\n\n");
-        //update before attempting to the other process
+        //update everything before attempting to the other process
         numberOfNodes = 0;
         isSamePriCnt = 0;
         isSamePriFlag = 0;
         least_priVal = 50;
         least_TArrive = 50;
     }
-
 }
 
 int whichHasTheLeastPri1(node *head){
